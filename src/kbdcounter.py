@@ -303,25 +303,25 @@ class KbdCounter(object):
         self.thishour_count = 0
 
     def set_nextsave(self):
-        save_every = 5 # seconds
+        save_every = 300 # 5 minutes
         now = time.time()
         self.nextsave = now + min((self.nexthour - datetime.now()).seconds+1, save_every)
 
     def save(self):
         self.set_nextsave()
         storage = Storage(self.storepath)
-        storage.write_data(self.keyboard_events, self.mouse_events,
-                           self.thishour,
-                           (self.mouse_distance_x, self.mouse_distance_y))
-        self.keyboard_events.clear()
-        self.mouse_events.clear()
-        self.mouse_distance_x = 0
-        self.mouse_distance_y = 0
+        try:
+            storage.write_data(self.keyboard_events, self.mouse_events,
+                               self.thishour,
+                               (self.mouse_distance_x, self.mouse_distance_y))
+            self.keyboard_events.clear()
+            self.mouse_events.clear()
+            self.mouse_distance_x = 0
+            self.mouse_distance_y = 0
+        except sqlite3.OperationalError as e:
+            print("Error saving data", e)
 
     def run(self):
-
-
-
         events = XEvents()
         events.start()
         while not events.listening():
@@ -349,7 +349,12 @@ class KbdCounter(object):
                 # Key press (evt.value == 1) or release (evt.value == 0)
                 if evt.type == 'EV_KEY' and evt.value == 1:
                     if evt.code.startswith('KEY'):
-                        self.keyboard_events[(evt.code, modifier_state)] += 1
+                        if evt.code == 'KEY_DUNNO':
+                            idx = (evt.scancode, modifier_state)
+                        else:
+                            idx = (evt.code, modifier_state)
+                        self.keyboard_events[idx] += 1
+
                     if evt.code.startswith('BTN'):
                         self.mouse_events[(evt.code, modifier_state)] += 1
 
@@ -363,14 +368,6 @@ class KbdCounter(object):
 
                     last_mov = x, y
 
-                if evt.type == 'EV_KEY' and evt.value == 1 and evt.code not in MODIFIERS.iterkeys():
-                    print("type %s value %s code %s scancode %s" % (evt.type, evt.value, evt.code, evt.scancode), end=' ')
-                    print("S:%d C:%d A:%d M:%d S:%d" % (modifier_state & MODIFIERS['KEY_SHIFT_L'],
-                                                        modifier_state & MODIFIERS['KEY_CONTROL_L'],
-                                                        modifier_state & MODIFIERS['KEY_ALT_L'],
-                                                        modifier_state & MODIFIERS['KEY_META_L'],
-                                                        modifier_state & MODIFIERS['KEY_SUPER_L']))
-
                 # Scrolling
                 if evt.type == 'EV_REL':
                     if evt.code == 'REL_WHEEL':
@@ -378,6 +375,15 @@ class KbdCounter(object):
                             self.mouse_events[('WHEEL_UP', modifier_state)] += evt.value
                         if evt.value < 0:
                             self.mouse_events[('WHEEL_DOWN', modifier_state)] += -evt.value
+
+                if evt.code == 'REL_WHEEL' or (evt.type == 'EV_KEY' and evt.value == 1 and evt.code not in MODIFIERS.iterkeys()):
+                    print("type %s value %s code %s scancode %s" % (evt.type, evt.value, evt.code, evt.scancode), end=' ')
+                    print("S:%d C:%d A:%d M:%d S:%d" % (modifier_state & MODIFIERS['KEY_SHIFT_L'],
+                                                            modifier_state & MODIFIERS['KEY_CONTROL_L'],
+                                                            modifier_state & MODIFIERS['KEY_ALT_L'],
+                                                            modifier_state & MODIFIERS['KEY_META_L'],
+                                                            modifier_state & MODIFIERS['KEY_SUPER_L']))
+
 
                 if time.time() > self.nextsave:
                     print("Mouse:", self.mouse_distance_x, self.mouse_distance_y)
@@ -389,9 +395,6 @@ class KbdCounter(object):
         except KeyboardInterrupt:
             events.stop_listening()
             self.save()
-
-            print("Mouse distance: ", (self.mouse_distance_x**2 + self.mouse_distance_y**2)**0.5)
-
 
 def run():
     oparser = OptionParser()
