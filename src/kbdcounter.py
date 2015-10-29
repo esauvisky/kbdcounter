@@ -236,7 +236,7 @@ create table keyboard(
 
     def print_stats(self):
         with sqlite3.connect(self.db) as conn:
-            top5_keys = 'select id, sum(count) from keyboard group by count order by count desc limit 5'
+            top5_keys = 'select id, sum(count) from keyboard group by id order by 2 desc limit 5'
             cursor = conn.execute(top5_keys)
             row = cursor.fetchall()
             print("Top 5 Keys:", row)
