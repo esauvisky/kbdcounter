@@ -2,7 +2,7 @@
 
 This program keeps track of the number of input events that you make with your keyboard and mouse. 
 
-Requires an X Windows environment such as Linux. 
+Requires an X Windows environment such as Linux. (No Macintoshes or Windows, sorry). 
 
 The results are are stored in a sqlite3 database file for later perusal.
 
@@ -10,7 +10,7 @@ Thanks to [Erik Forsberg](https://github.com/forsberg) for writing the original 
 
 ## Purpose
 
-The purpose is to track how you interact with your computer's input devices. It has no particular value above statistical curiosity. 
+The purpose is to collect data on how you interact with your computer's input devices. It has no particular value above statistical curiosity. 
 
 ## Installation
 
@@ -116,7 +116,9 @@ CREATE TABLE mouse_distance(
 
 ### Limitations
 
-The program currently reports on events that it knows about, those from standard keyboards and mice. Events from other sources (e.g., from a tablet or space ball) it may not recognize, or it may confuse with something else. 
+The program currently reports on events that it knows about, those from standard keyboards and mice. Events from other sources (e.g., tablets, buttons on the computer itself, maybe trackpads) may not be recognized, or may be confused with something else. 
+
+It also records only raw input, and knows nothing of keyboard layouts. A "KEY_S" event may not necessarily mean that "S" was produced when you pressed that button. For example, "KEY_S" may correspond to "Σ" if you were using a Greek keyboard layout. 
 
 
 ## Security & Privacy
