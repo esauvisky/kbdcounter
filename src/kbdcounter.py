@@ -8,8 +8,35 @@ import time
 from datetime import datetime, timedelta
 from optparse import OptionParser
 from xlib import XEvents
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+import pandas as pd
+import sqlite3
 
 import xlib
+
+def generate_heatmap(data):
+    # Filter data to consider only KEY_ values
+    data = data[data['id'].str.startswith('KEY_')]
+
+    # Pivot the data into a matrix
+    data_pivot = data.pivot_table(index='id', values='total_count', aggfunc='sum')
+
+    # Reverse the data (biggest number shows up first)
+    data_pivot = data_pivot.sort_values('total_count', ascending=False)
+
+    # Create the heatmap
+    plt.figure(figsize=(10, 20))
+    sns.heatmap(data_pivot, annot=True, fmt=".0f", cmap="YlGnBu", cbar=False)
+    plt.title("Heatmap")
+    plt.tight_layout()
+    plt.show()
+
+def fetch_data(query, db_path):
+    with sqlite3.connect(db_path) as conn:
+        df = pd.read_sql_query(query, conn)
+    return df
 
 def get_screen():
     XY = namedtuple('XY', ['x', 'y'])
@@ -420,9 +447,12 @@ def run():
     options.storepath = os.path.expandvars(options.storepath)
 
     if options.report:
-        print (options.storepath)
-        storage = Storage(options.storepath)
-        storage.print_stats()
+        query = "SELECT id, SUM(count) as total_count FROM keyboard GROUP BY id"
+        data = fetch_data(query, options.storepath)
+        generate_heatmap(data)
+        # print (options.storepath)
+        # storage = Storage(options.storepath)
+        # storage.print_stats()
         return
 
     if options.zero_hour:
