@@ -487,7 +487,7 @@ def run():
     oparser.add_option("--storepath",
                        dest="storepath",
                        help="Filename into which number of keypresses per hour is written",
-                       default="~/.kbdcounter.db")
+                       default="kbdcounter.db")
     oparser.add_option("--report", dest='report', action="store_true", help="Print some statistics", default=False)
     oparser.add_option("--heatmap", dest='heatmap', action="store_true", help="Show a graphical heatmap", default=False)
     oparser.add_option("--zero-hour",
