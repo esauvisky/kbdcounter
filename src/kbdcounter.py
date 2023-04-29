@@ -15,6 +15,75 @@ import pandas as pd
 import sqlite3
 
 import xlib
+import keyboardlayout as kl
+import keyboardlayout.pygame as klp
+import pygame
+
+KEY_SIZE = 60
+
+
+def get_key_positions(keyboard_layout, layout_name):
+    return {
+        "KEY_BACKQUOTE": keyboard_layout.keys[layout_name]["`"].rect,
+        "KEY_1": keyboard_layout.keys[layout_name]["1"].rect,
+        "KEY_2": keyboard_layout.keys[layout_name]["2"].rect,
+        "KEY_3": keyboard_layout.keys[layout_name]["3"].rect,
+        "KEY_4": keyboard_layout.keys[layout_name]["4"].rect,
+        "KEY_5": keyboard_layout.keys[layout_name]["5"].rect,
+        "KEY_6": keyboard_layout.keys[layout_name]["6"].rect,
+        "KEY_7": keyboard_layout.keys[layout_name]["7"].rect,
+        "KEY_8": keyboard_layout.keys[layout_name]["8"].rect,
+        "KEY_9": keyboard_layout.keys[layout_name]["9"].rect,
+        "KEY_0": keyboard_layout.keys[layout_name]["0"].rect,
+        "KEY_MINUS": keyboard_layout.keys[layout_name]["-"].rect,
+        "KEY_EQUAL": keyboard_layout.keys[layout_name]["="].rect,
+        "KEY_TAB": keyboard_layout.keys[layout_name]["tab"].rect,
+        "KEY_Q": keyboard_layout.keys[layout_name]["q"].rect,
+        "KEY_W": keyboard_layout.keys[layout_name]["w"].rect,
+        "KEY_E": keyboard_layout.keys[layout_name]["e"].rect,
+        "KEY_R": keyboard_layout.keys[layout_name]["r"].rect,
+        "KEY_T": keyboard_layout.keys[layout_name]["t"].rect,
+        "KEY_Y": keyboard_layout.keys[layout_name]["y"].rect,
+        "KEY_U": keyboard_layout.keys[layout_name]["u"].rect,
+        "KEY_I": keyboard_layout.keys[layout_name]["i"].rect,
+        "KEY_O": keyboard_layout.keys[layout_name]["o"].rect,
+        "KEY_P": keyboard_layout.keys[layout_name]["p"].rect,
+        "KEY_LEFTBRACKET": keyboard_layout.keys[layout_name]["["].rect,
+        "KEY_RIGHTBRACKET": keyboard_layout.keys[layout_name]["]"].rect,
+        "KEY_BACKSLASH": keyboard_layout.keys[layout_name]["\\"].rect,
+        "KEY_CAPSLOCK": keyboard_layout.keys[layout_name]["caps lock"].rect,
+        "KEY_A": keyboard_layout.keys[layout_name]["a"].rect,
+        "KEY_S": keyboard_layout.keys[layout_name]["s"].rect,
+        "KEY_D": keyboard_layout.keys[layout_name]["d"].rect,
+        "KEY_F": keyboard_layout.keys[layout_name]["f"].rect,
+        "KEY_G": keyboard_layout.keys[layout_name]["g"].rect,
+        "KEY_H": keyboard_layout.keys[layout_name]["h"].rect,
+        "KEY_J": keyboard_layout.keys[layout_name]["j"].rect,
+        "KEY_K": keyboard_layout.keys[layout_name]["k"].rect,
+        "KEY_L": keyboard_layout.keys[layout_name]["l"].rect,
+        "KEY_SEMICOLON": keyboard_layout.keys[layout_name][";"].rect,
+        "KEY_QUOTE": keyboard_layout.keys[layout_name]["'"].rect,
+        "KEY_LEFTSHIFT": keyboard_layout.keys[layout_name]["left shift"].rect,
+        "KEY_Z": keyboard_layout.keys[layout_name]["z"].rect,
+        "KEY_X": keyboard_layout.keys[layout_name]["x"].rect,
+        "KEY_C": keyboard_layout.keys[layout_name]["c"].rect,
+        "KEY_V": keyboard_layout.keys[layout_name]["v"].rect,
+        "KEY_B": keyboard_layout.keys[layout_name]["b"].rect,
+        "KEY_N": keyboard_layout.keys[layout_name]["n"].rect,
+        "KEY_M": keyboard_layout.keys[layout_name]["m"].rect,
+        "KEY_COMMA": keyboard_layout.keys[layout_name][","].rect,
+        "KEY_PERIOD": keyboard_layout.keys[layout_name]["."].rect,
+        "KEY_SLASH": keyboard_layout.keys[layout_name]["/"].rect,
+        "KEY_RIGHTSHIFT": keyboard_layout.keys[layout_name]["right shift"].rect,
+        "KEY_LEFTCTRL": keyboard_layout.keys[layout_name]["left ctrl"].rect,
+        "KEY_LEFTMETA": keyboard_layout.keys[layout_name]["left meta"].rect,
+        "KEY_LEFTALT": keyboard_layout.keys[layout_name]["left alt"].rect,
+        "KEY_SPACE": keyboard_layout.keys[layout_name]["space"].rect,
+        "KEY_RIGHTALT": keyboard_layout.keys[layout_name]["right alt"].rect,
+        "KEY_RIGHTMETA": keyboard_layout.keys[layout_name]["right meta"].rect,
+        "KEY_CONTEXTMENU": keyboard_layout.keys[layout_name]["context menu"].rect,
+        "KEY_RIGHTCTRL": keyboard_layout.keys[layout_name]["right ctrl"].rect,}
+
 
 def generate_heatmap(data):
     # Filter data to consider only KEY_ values
@@ -33,10 +102,12 @@ def generate_heatmap(data):
     plt.tight_layout()
     plt.show()
 
+
 def fetch_data(query, db_path):
     with sqlite3.connect(db_path) as conn:
         df = pd.read_sql_query(query, conn)
     return df
+
 
 def get_screen():
     XY = namedtuple('XY', ['x', 'y'])
@@ -58,13 +129,13 @@ MODIFIERS = {
     'KEY_ALT_L': 0x4,
     'KEY_META_L': 0x8,
     'KEY_SUPER_L': 0x10,
-    # treat left and right as the same (for now)
+                            # treat left and right as the same (for now)
     'KEY_SHIFT_R': 0x1,
     'KEY_CONTROL_R': 0x2,
     'KEY_ALT_R': 0x4,
     'KEY_META_R': 0x8,
-    'KEY_SUPER_R': 0x10,
-}
+    'KEY_SUPER_R': 0x10,}
+
 
 class Storage:
     # Simple record storage.
@@ -72,7 +143,8 @@ class Storage:
     # KEY_9, 1, 0, 0, 0, 0, 314, 9/25/2015, 19
     # 0x224
 
-    SCHEMA = ['''
+    SCHEMA = [
+        '''
 create table keyboard(
     id text,
     count int,
@@ -84,9 +156,7 @@ create table keyboard(
     meta int,
     super int,
     primary key (id, day, hour, shift, ctrl, alt, meta, super)
-);''',
-
-'''create table mouse(
+);''', '''create table mouse(
     id text,
     count int,
     day date,
@@ -97,20 +167,14 @@ create table keyboard(
     meta int,
     super int,
     primary key (id, day, hour, shift, ctrl, alt, meta, super)
-);''',
-
-    '''create table mouse_distance(
+);''', '''create table mouse_distance(
     x int,
     y int,
     dist real,
     day date,
     hour int,
     primary key (day, hour)
-);''',
-
-    '''create table schema_version(version int);''',
-    '''insert into schema_version(version) values (1);'''
-]
+);''', '''create table schema_version(version int);''', '''insert into schema_version(version) values (1);''']
 
     def __init__(self, path):
         self.db = path
@@ -128,7 +192,7 @@ create table keyboard(
                     conn.execute(statement)
 
     def _write_keyboard(self, conn, keyboard, when, hour):
-            keyboard_update = '''
+        keyboard_update = '''
             update or ignore keyboard
                 set count = count + :count
             where
@@ -141,7 +205,7 @@ create table keyboard(
             and day = :day
             and hour = :hour'''
 
-            keyboard_insert = '''insert or ignore into keyboard (
+        keyboard_insert = '''insert or ignore into keyboard (
                 id,
                 shift, ctrl, alt, meta, super,
                 count, day, hour)
@@ -150,22 +214,25 @@ create table keyboard(
                 :shift, :ctrl, :alt, :meta, :super,
                 :count, :day, :hour)'''
 
-            params = [{'key': key[0], 'count': value, 'day': when,
-                       'hour': hour,
-                       'shift': (key[1] & MODIFIERS['KEY_SHIFT_L']) > 0,
-                       'ctrl': (key[1] & MODIFIERS['KEY_CONTROL_L']) > 0,
-                       'alt': (key[1] & MODIFIERS['KEY_ALT_L']) > 0,
-                       'meta': (key[1] & MODIFIERS['KEY_META_L']) > 0,
-                       'super': (key[1] & MODIFIERS['KEY_SUPER_L']) > 0,}
-                       for key, value in keyboard.items()]
+        params = [{
+            'key': key[0],
+            'count': value,
+            'day': when,
+            'hour': hour,
+            'shift': (key[1] & MODIFIERS['KEY_SHIFT_L']) > 0,
+            'ctrl': (key[1] & MODIFIERS['KEY_CONTROL_L']) > 0,
+            'alt': (key[1] & MODIFIERS['KEY_ALT_L']) > 0,
+            'meta': (key[1] & MODIFIERS['KEY_META_L']) > 0,
+            'super': (key[1] & MODIFIERS['KEY_SUPER_L']) > 0,} for key, value in keyboard.items()]
 
-            # First, update any values that exist
-            conn.executemany(keyboard_update, params)
+        # First, update any values that exist
+        conn.executemany(keyboard_update, params)
 
-            # Then, insert any new values
-            conn.executemany(keyboard_insert, params)
+        # Then, insert any new values
+        conn.executemany(keyboard_insert, params)
+
     def _write_mouse(self, conn, mouse, when, hour):
-            mouse_update = '''
+        mouse_update = '''
             update or ignore mouse
                 set count = count + :count
             where
@@ -178,7 +245,7 @@ create table keyboard(
             and day = :day
             and hour = :hour'''
 
-            mouse_insert = '''
+        mouse_insert = '''
             insert or ignore into mouse(id,
                 shift, ctrl, alt, meta, super,
                 count, day, hour)
@@ -187,42 +254,44 @@ create table keyboard(
                 :shift, :ctrl, :alt, :meta, :super,
                 :count, :day, :hour)'''
 
-            params = [{'key': key[0], 'count': value, 'day': when,
-                       'hour': hour,
-                       'shift': (key[1] & MODIFIERS['KEY_SHIFT_L']) > 0,
-                       'ctrl': (key[1] & MODIFIERS['KEY_CONTROL_L']) > 0,
-                       'alt': (key[1] & MODIFIERS['KEY_ALT_L']) > 0,
-                       'meta': (key[1] & MODIFIERS['KEY_META_L']) > 0,
-                       'super': (key[1] & MODIFIERS['KEY_SUPEsR_L']) > 0,}
-                       for key, value in mouse.items()]
+        params = [{
+            'key': key[0],
+            'count': value,
+            'day': when,
+            'hour': hour,
+            'shift': (key[1] & MODIFIERS['KEY_SHIFT_L']) > 0,
+            'ctrl': (key[1] & MODIFIERS['KEY_CONTROL_L']) > 0,
+            'alt': (key[1] & MODIFIERS['KEY_ALT_L']) > 0,
+            'meta': (key[1] & MODIFIERS['KEY_META_L']) > 0,
+            'super': (key[1] & MODIFIERS['KEY_SUPEsR_L']) > 0,} for key, value in mouse.items()]
 
-            # First, update any values that exist
-            conn.executemany(mouse_update, params)
+        # First, update any values that exist
+        conn.executemany(mouse_update, params)
 
-            # Then, insert any new values
-            conn.executemany(mouse_insert, params)
+        # Then, insert any new values
+        conn.executemany(mouse_insert, params)
+
     def _write_mouse_distance(self, conn, distance, when, hour):
-            x, y = distance
+        x, y = distance
 
-            select = '''select x, y from mouse_distance
+        select = '''select x, y from mouse_distance
                         where day = :day and hour = :hour'''
-            delete = '''delete from mouse_distance
+        delete = '''delete from mouse_distance
                         where day = :day and hour = :hour'''
-            insert = '''insert into mouse_distance(x, y, dist, day, hour)
+        insert = '''insert into mouse_distance(x, y, dist, day, hour)
                         values (:x, :y, :dist, :day, :hour)'''
 
-            row = conn.execute(select, {'day': when, 'hour': hour})
-            row = row.fetchone()
-            if row:
-                oldx = row[0]
-                oldy = row[1]
-                x += oldx
-                y += oldy
-                conn.execute(delete, {'day': when, 'hour': hour})
+        row = conn.execute(select, {'day': when, 'hour': hour})
+        row = row.fetchone()
+        if row:
+            oldx = row[0]
+            oldy = row[1]
+            x += oldx
+            y += oldy
+            conn.execute(delete, {'day': when, 'hour': hour})
 
-            dist = (x**2 + y**2)**0.5
-            conn.execute(insert, {'x': x, 'y': y, 'dist': dist,
-                                  'day': when, 'hour': hour})
+        dist = (x**2 + y**2)**0.5
+        conn.execute(insert, {'x': x, 'y': y, 'dist': dist, 'day': when, 'hour': hour})
 
     def write_data(self, keyboard, mouse, when, distance):
         hour = when.strftime('%H')
@@ -282,7 +351,7 @@ create table keyboard(
             mm_px_y = screen_mm.y / screen_px.y
 
             inch_per_foot = 12
-            foot_per_meter = 1/0.3048
+            foot_per_meter = 1 / 0.3048
             meter_per_mm = 0.001
             inch_per_mm = inch_per_foot * foot_per_meter * meter_per_mm
             # IN FT M_ MM
@@ -295,21 +364,19 @@ create table keyboard(
             mouse_distance_m = ((x_px * mm_px_x * meter_per_mm)**2 + (y_px * mm_px_y * meter_per_mm)**2)**0.5
             print("Mouse distance during current hour: %.1f meters" % (mouse_distance_m))
 
-
             mouse_buttons = 'select id, sum(count) from mouse group by id order by count desc limit 5'
             cursor = conn.execute(mouse_buttons)
             row = cursor.fetchall()
             print("Mouse buttons:", row)
 
 
-
-
 def is_mouse(event):
     return event.type.startswith('EV_MOV', 'EV_REL')
 
+
 class KbdCounter(object):
     def __init__(self, options):
-        self.storepath=os.path.expanduser(options.storepath)
+        self.storepath = os.path.expanduser(options.storepath)
 
         self.set_thishour()
         self.set_nextsave()
@@ -332,15 +399,13 @@ class KbdCounter(object):
     def set_nextsave(self):
         save_every = 300 # 5 minutes
         now = time.time()
-        self.nextsave = now + min((self.nexthour - datetime.now()).seconds+1, save_every)
+        self.nextsave = now + min((self.nexthour - datetime.now()).seconds + 1, save_every)
 
     def save(self):
         self.set_nextsave()
         storage = Storage(self.storepath)
         try:
-            storage.write_data(self.keyboard_events, self.mouse_events,
-                               self.thishour,
-                               (self.mouse_distance_x, self.mouse_distance_y))
+            storage.write_data(self.keyboard_events, self.mouse_events, self.thishour, (self.mouse_distance_x, self.mouse_distance_y))
             self.keyboard_events.clear()
             self.mouse_events.clear()
             self.mouse_distance_x = 0
@@ -403,14 +468,12 @@ class KbdCounter(object):
                         if evt.value < 0:
                             self.mouse_events[('WHEEL_DOWN', modifier_state)] += -evt.value
 
-                if evt.code == 'REL_WHEEL' or (evt.type == 'EV_KEY' and evt.value == 1 and evt.code not in MODIFIERS.keys()):
-                    print("type %s value %s code %s scancode %s" % (evt.type, evt.value, evt.code, evt.scancode), end=' ')
-                    print("S:%d C:%d A:%d M:%d S:%d" % (modifier_state & MODIFIERS['KEY_SHIFT_L'],
-                                                            modifier_state & MODIFIERS['KEY_CONTROL_L'],
-                                                            modifier_state & MODIFIERS['KEY_ALT_L'],
-                                                            modifier_state & MODIFIERS['KEY_META_L'],
-                                                            modifier_state & MODIFIERS['KEY_SUPER_L']))
-
+                if evt.code == 'REL_WHEEL' or (evt.type == 'EV_KEY' and evt.value == 1 and evt.code not in MODIFIERS.keys(
+                )):
+                    print("type %s value %s code %s scancode %s" % (evt.type, evt.value, evt.code, evt.scancode),
+                          end=' ')
+                    print("S:%d C:%d A:%d M:%d S:%d" % (modifier_state & MODIFIERS['KEY_SHIFT_L'], modifier_state & MODIFIERS['KEY_CONTROL_L'], modifier_state
+                                                        & MODIFIERS['KEY_ALT_L'], modifier_state & MODIFIERS['KEY_META_L'], modifier_state & MODIFIERS['KEY_SUPER_L']))
 
                 if time.time() > self.nextsave:
                     print("Mouse:", self.mouse_distance_x, self.mouse_distance_y)
@@ -423,21 +486,105 @@ class KbdCounter(object):
             events.stop_listening()
             self.save()
 
+
+def generate_heatmap(data):
+    layout_name = kl.LayoutName.QWERTY
+    pygame.init()
+
+    grey = pygame.Color('grey')
+    # set the keyboard position and color info
+    keyboard_info = kl.KeyboardInfo(position=(0, 0), padding=2, color=~grey)
+    # set the letter key color, padding, and margin info in px
+    key_info = kl.KeyInfo(
+        margin=10,
+        color=grey,
+        txt_color=~grey,                                      # invert grey
+        txt_font=pygame.font.SysFont('Arial', KEY_SIZE // 4),
+        txt_padding=(KEY_SIZE // 6, KEY_SIZE // 10))
+                                                              # set the letter key size info in px
+    letter_key_size = (KEY_SIZE, KEY_SIZE)                    # width, height
+    keyboard_layout = klp.KeyboardLayout(layout_name, keyboard_info, letter_key_size, key_info)
+                                                              # set the pygame window to the size of the keyboard
+    screen = pygame.display.set_mode((keyboard_layout.rect.width, keyboard_layout.rect.height))
+    screen.fill(pygame.Color('black'))
+
+    # draw the keyboard on the pygame screen
+    keyboard_layout.draw(screen)
+    pygame.display.update()
+
+    key_positions = get_key_positions(keyboard_layout, layout_name)
+
+    # loop until the user closes the pygame window
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.display.quit()
+                running = False
+
+        # Clear the screen
+        screen.fill(pygame.Color('black'))
+
+        # Redraw the keyboard
+        keyboard_layout.draw(screen)
+
+        # Draw the heatmap on the keys
+        draw_heatmap_on_keys(screen, keyboard_layout, data, key_positions)
+
+        # Update the display
+        pygame.display.update()
+
+    pygame.quit()
+
+
+def draw_heatmap_on_keys(screen, layout, data, key_positions):
+    # Filter data to consider only KEY_ values
+    data = data[data['id'].str.startswith('KEY_')]
+
+    # Draw the heatmap on the keyboard layout
+    for _, row in data.iterrows():
+        key_id = row['id']
+        count = row['total_count']
+
+        # Get the key rect from the layout
+        key_rect = key_positions[key_id]
+
+        # Customize the heatmap's color and transparency (alpha) based on the count
+        color = pygame.Color(0, 0, 255, int(255 * count / data['total_count'].max()))
+
+        # Draw a translucent rectangle for each key with the appropriate color
+        surf = pygame.Surface((key_rect.width, key_rect.height), pygame.SRCALPHA)
+        surf.fill(color)
+        screen.blit(surf, key_rect.topleft)
+
+        # Add key count text
+        font = pygame.font.SysFont('Arial', KEY_SIZE // 4)
+        text_surface = font.render(str(int(count)), True, pygame.Color('white'))
+        text_rect = text_surface.get_rect()
+        text_rect.center = key_rect.center
+        screen.blit(text_surface, text_rect)
+
+
 def run():
     oparser = OptionParser()
-    oparser.add_option("--storepath", dest="storepath",
+    oparser.add_option("--storepath",
+                       dest="storepath",
                        help="Filename into which number of keypresses per hour is written",
                        default="~/.kbdcounter.db")
-    oparser.add_option("--report", dest='report', action="store_true",
-                       help="Print some statistics",
-                       default=False)
-    oparser.add_option("--zero-hour", dest='zero_hour', action="store_true",
+    oparser.add_option("--report", dest='report', action="store_true", help="Print some statistics", default=False)
+    oparser.add_option("--zero-hour",
+                       dest='zero_hour',
+                       action="store_true",
                        help="Zero data for the current hour",
                        default=False)
-    oparser.add_option("--zero-day", dest='zero_day', action="store_true",
+    oparser.add_option("--zero-day",
+                       dest='zero_day',
+                       action="store_true",
                        help="Zero data for the current day",
                        default=False)
-    oparser.add_option("--zero-all", dest='zero_all', action="store_true",
+    oparser.add_option("--zero-all",
+                       dest='zero_all',
+                       action="store_true",
                        help="Zero all data (erases database file)",
                        default=False)
 
@@ -446,14 +593,14 @@ def run():
     options.storepath = os.path.expanduser(options.storepath)
     options.storepath = os.path.expandvars(options.storepath)
 
-    if options.report:
-        query = "SELECT id, SUM(count) as total_count FROM keyboard GROUP BY id"
-        data = fetch_data(query, options.storepath)
-        generate_heatmap(data)
-        # print (options.storepath)
-        # storage = Storage(options.storepath)
-        # storage.print_stats()
-        return
+    # if options.report:
+    query = "SELECT id, SUM(count) as total_count FROM keyboard GROUP BY id"
+    data = fetch_data(query, options.storepath)
+    generate_heatmap(data)
+    # print (options.storepath)
+    # storage = Storage(options.storepath)
+    # storage.print_stats()
+    return
 
     if options.zero_hour:
         Storage(options.storepath).clear_current_hour()
@@ -473,11 +620,8 @@ def run():
     kc = KbdCounter(options)
     kc.run()
 
-    print ("And we're done")
+    print("And we're done")
 
 
 if __name__ == '__main__':
     run()
-
-
-
