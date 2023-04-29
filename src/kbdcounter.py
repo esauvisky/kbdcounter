@@ -130,7 +130,7 @@ create table keyboard(
                        'alt': (key[1] & MODIFIERS['KEY_ALT_L']) > 0,
                        'meta': (key[1] & MODIFIERS['KEY_META_L']) > 0,
                        'super': (key[1] & MODIFIERS['KEY_SUPER_L']) > 0,}
-                       for key, value in keyboard.iteritems()]
+                       for key, value in keyboard.items()]
 
             # First, update any values that exist
             conn.executemany(keyboard_update, params)
@@ -166,8 +166,8 @@ create table keyboard(
                        'ctrl': (key[1] & MODIFIERS['KEY_CONTROL_L']) > 0,
                        'alt': (key[1] & MODIFIERS['KEY_ALT_L']) > 0,
                        'meta': (key[1] & MODIFIERS['KEY_META_L']) > 0,
-                       'super': (key[1] & MODIFIERS['KEY_SUPER_L']) > 0,}
-                       for key, value in mouse.iteritems()]
+                       'super': (key[1] & MODIFIERS['KEY_SUPEsR_L']) > 0,}
+                       for key, value in mouse.items()]
 
             # First, update any values that exist
             conn.executemany(mouse_update, params)
@@ -340,7 +340,7 @@ class KbdCounter(object):
                     continue
 
                 # read modifier state
-                if evt.type == 'EV_KEY' and evt.code in MODIFIERS.iterkeys():
+                if evt.type == 'EV_KEY' and evt.code in MODIFIERS.keys():
                     if evt.value:
                         modifier_state |= MODIFIERS[evt.code]
                     else:
@@ -376,7 +376,7 @@ class KbdCounter(object):
                         if evt.value < 0:
                             self.mouse_events[('WHEEL_DOWN', modifier_state)] += -evt.value
 
-                if evt.code == 'REL_WHEEL' or (evt.type == 'EV_KEY' and evt.value == 1 and evt.code not in MODIFIERS.iterkeys()):
+                if evt.code == 'REL_WHEEL' or (evt.type == 'EV_KEY' and evt.value == 1 and evt.code not in MODIFIERS.keys()):
                     print("type %s value %s code %s scancode %s" % (evt.type, evt.value, evt.code, evt.scancode), end=' ')
                     print("S:%d C:%d A:%d M:%d S:%d" % (modifier_state & MODIFIERS['KEY_SHIFT_L'],
                                                             modifier_state & MODIFIERS['KEY_CONTROL_L'],
@@ -388,10 +388,10 @@ class KbdCounter(object):
                 if time.time() > self.nextsave:
                     print("Mouse:", self.mouse_distance_x, self.mouse_distance_y)
                     self.save()
-            
+
                     if datetime.now().hour != self.thishour.hour:
                         self.set_thishour()
-            
+
         except KeyboardInterrupt:
             events.stop_listening()
             self.save()
@@ -445,9 +445,9 @@ def run():
 
     print ("And we're done")
 
-    
+
 if __name__ == '__main__':
     run()
-    
-    
-    
+
+
+

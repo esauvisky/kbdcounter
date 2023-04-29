@@ -1,1 +1,2 @@
-python-xlib==0.12
+six==1.16.0
+xlib==0.21

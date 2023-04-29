@@ -99,7 +99,7 @@ class XEvents(threading.Thread):
         for name in dir(XK):
             if name[:3] == "XK_":
                 code = getattr(XK, name)
-                self.keycode_to_symbol[code] = 'KEY_' + str(unicode(name[3:]).upper())
+                self.keycode_to_symbol[code] = 'KEY_' + str(name[3:]).upper()
         self.keycode_to_symbol[65027] = 'KEY_ISO_LEVEL3_SHIFT'
         self.keycode_to_symbol[269025062] = 'KEY_BACK'
         self.keycode_to_symbol[269025063] = 'KEY_FORWARD'
