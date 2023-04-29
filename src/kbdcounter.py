@@ -1,112 +1,57 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function, division
-import sqlite3
-from collections import Counter, namedtuple
+from __future__ import division, print_function
+
 import os
+import re
+import sqlite3
 import time
+from collections import Counter, namedtuple
 from datetime import datetime, timedelta
 from optparse import OptionParser
-from xlib import XEvents
-import seaborn as sns
-import matplotlib.pyplot as plt
 
-import pandas as pd
-import sqlite3
-
-import xlib
 import keyboardlayout as kl
 import keyboardlayout.pygame as klp
+import matplotlib.pyplot as plt
+import pandas as pd
 import pygame
+import seaborn as sns
+
+import xlib
+from xlib import XEvents
 
 KEY_SIZE = 60
+PADDING = 10
 
 
-def get_key_positions(keyboard_layout, layout_name):
-    return {
-        "KEY_BACKQUOTE": keyboard_layout.keys[layout_name]["`"].rect,
-        "KEY_1": keyboard_layout.keys[layout_name]["1"].rect,
-        "KEY_2": keyboard_layout.keys[layout_name]["2"].rect,
-        "KEY_3": keyboard_layout.keys[layout_name]["3"].rect,
-        "KEY_4": keyboard_layout.keys[layout_name]["4"].rect,
-        "KEY_5": keyboard_layout.keys[layout_name]["5"].rect,
-        "KEY_6": keyboard_layout.keys[layout_name]["6"].rect,
-        "KEY_7": keyboard_layout.keys[layout_name]["7"].rect,
-        "KEY_8": keyboard_layout.keys[layout_name]["8"].rect,
-        "KEY_9": keyboard_layout.keys[layout_name]["9"].rect,
-        "KEY_0": keyboard_layout.keys[layout_name]["0"].rect,
-        "KEY_MINUS": keyboard_layout.keys[layout_name]["-"].rect,
-        "KEY_EQUAL": keyboard_layout.keys[layout_name]["="].rect,
-        "KEY_TAB": keyboard_layout.keys[layout_name]["tab"].rect,
-        "KEY_Q": keyboard_layout.keys[layout_name]["q"].rect,
-        "KEY_W": keyboard_layout.keys[layout_name]["w"].rect,
-        "KEY_E": keyboard_layout.keys[layout_name]["e"].rect,
-        "KEY_R": keyboard_layout.keys[layout_name]["r"].rect,
-        "KEY_T": keyboard_layout.keys[layout_name]["t"].rect,
-        "KEY_Y": keyboard_layout.keys[layout_name]["y"].rect,
-        "KEY_U": keyboard_layout.keys[layout_name]["u"].rect,
-        "KEY_I": keyboard_layout.keys[layout_name]["i"].rect,
-        "KEY_O": keyboard_layout.keys[layout_name]["o"].rect,
-        "KEY_P": keyboard_layout.keys[layout_name]["p"].rect,
-        "KEY_LEFTBRACKET": keyboard_layout.keys[layout_name]["["].rect,
-        "KEY_RIGHTBRACKET": keyboard_layout.keys[layout_name]["]"].rect,
-        "KEY_BACKSLASH": keyboard_layout.keys[layout_name]["\\"].rect,
-        "KEY_CAPSLOCK": keyboard_layout.keys[layout_name]["caps lock"].rect,
-        "KEY_A": keyboard_layout.keys[layout_name]["a"].rect,
-        "KEY_S": keyboard_layout.keys[layout_name]["s"].rect,
-        "KEY_D": keyboard_layout.keys[layout_name]["d"].rect,
-        "KEY_F": keyboard_layout.keys[layout_name]["f"].rect,
-        "KEY_G": keyboard_layout.keys[layout_name]["g"].rect,
-        "KEY_H": keyboard_layout.keys[layout_name]["h"].rect,
-        "KEY_J": keyboard_layout.keys[layout_name]["j"].rect,
-        "KEY_K": keyboard_layout.keys[layout_name]["k"].rect,
-        "KEY_L": keyboard_layout.keys[layout_name]["l"].rect,
-        "KEY_SEMICOLON": keyboard_layout.keys[layout_name][";"].rect,
-        "KEY_QUOTE": keyboard_layout.keys[layout_name]["'"].rect,
-        "KEY_LEFTSHIFT": keyboard_layout.keys[layout_name]["left shift"].rect,
-        "KEY_Z": keyboard_layout.keys[layout_name]["z"].rect,
-        "KEY_X": keyboard_layout.keys[layout_name]["x"].rect,
-        "KEY_C": keyboard_layout.keys[layout_name]["c"].rect,
-        "KEY_V": keyboard_layout.keys[layout_name]["v"].rect,
-        "KEY_B": keyboard_layout.keys[layout_name]["b"].rect,
-        "KEY_N": keyboard_layout.keys[layout_name]["n"].rect,
-        "KEY_M": keyboard_layout.keys[layout_name]["m"].rect,
-        "KEY_COMMA": keyboard_layout.keys[layout_name][","].rect,
-        "KEY_PERIOD": keyboard_layout.keys[layout_name]["."].rect,
-        "KEY_SLASH": keyboard_layout.keys[layout_name]["/"].rect,
-        "KEY_RIGHTSHIFT": keyboard_layout.keys[layout_name]["right shift"].rect,
-        "KEY_LEFTCTRL": keyboard_layout.keys[layout_name]["left ctrl"].rect,
-        "KEY_LEFTMETA": keyboard_layout.keys[layout_name]["left meta"].rect,
-        "KEY_LEFTALT": keyboard_layout.keys[layout_name]["left alt"].rect,
-        "KEY_SPACE": keyboard_layout.keys[layout_name]["space"].rect,
-        "KEY_RIGHTALT": keyboard_layout.keys[layout_name]["right alt"].rect,
-        "KEY_RIGHTMETA": keyboard_layout.keys[layout_name]["right meta"].rect,
-        "KEY_CONTEXTMENU": keyboard_layout.keys[layout_name]["context menu"].rect,
-        "KEY_RIGHTCTRL": keyboard_layout.keys[layout_name]["right ctrl"].rect,}
+def draw_heatmap_on_keys(screen, data, key_positions, background_color):
+    # Draw the heatmap on the keyboard layout
+    for key_id, count in data.items():
+        # Get the key rect from the layout
+        key_rect = key_positions[key_id]
+
+        # Customize the heatmap's color and transparency (alpha) based on the count
+        color = pygame.Color(240, 20, 30, int(200 * count / max(data.values())))
+
+        # Draw a translucent rectangle for each key with the appropriate color
+        surf = pygame.Surface((key_rect.width - PADDING, key_rect.height - PADDING), pygame.SRCALPHA)
+        surf.fill(color)
+        screen.blit(surf, (key_rect.x + PADDING/2, key_rect.y + PADDING/2)) # Modified this line to use x and y attributes
+
+        # Add key count text
+        font = pygame.font.SysFont('monospace', KEY_SIZE // 5)
+        text_surface = font.render(str(int(count)), True, pygame.Color('white'))
+        text_rect = text_surface.get_rect()
+        text_rect.topright = (key_rect.x + key_rect.width - PADDING, key_rect.y + key_rect.height - PADDING - KEY_SIZE//5) # Right
+        screen.blit(text_surface, text_rect)
 
 
-def generate_heatmap(data):
-    # Filter data to consider only KEY_ values
-    data = data[data['id'].str.startswith('KEY_')]
-
-    # Pivot the data into a matrix
-    data_pivot = data.pivot_table(index='id', values='total_count', aggfunc='sum')
-
-    # Reverse the data (biggest number shows up first)
-    data_pivot = data_pivot.sort_values('total_count', ascending=False)
-
-    # Create the heatmap
-    plt.figure(figsize=(10, 20))
-    sns.heatmap(data_pivot, annot=True, fmt=".0f", cmap="YlGnBu", cbar=False)
-    plt.title("Heatmap")
-    plt.tight_layout()
-    plt.show()
-
-
-def fetch_data(query, db_path):
-    with sqlite3.connect(db_path) as conn:
-        df = pd.read_sql_query(query, conn)
-    return df
+def format_key_name(key):
+    key = str(key).replace("Key.", "KEY_").replace("LEFT_", "L_").replace("RIGHT_", "R_")
+    key = re.sub(r'KEY_DIGIT_(\d)', r'KEY_\1', key)
+    key = re.sub(r'KEY_([RL])_(.+)', r'KEY_\2_\1', key)
+    key = key.replace("KEY_SHIFT_R", 'KEY_ISO_LEVEL3_SHIFT').replace("META", "SUPER")
+    return key
 
 
 def get_screen():
@@ -369,6 +314,56 @@ create table keyboard(
             row = cursor.fetchall()
             print("Mouse buttons:", row)
 
+    def generate_heatmap(self):
+        # Get data from database
+        with sqlite3.connect(self.db) as conn:
+            query = 'SELECt id, SUM(count) FROM keyboard GROUP BY id'
+            cursor = conn.execute(query)
+            data = cursor.fetchall()
+        data = {d[0]: d[1] for d in data if d[0].startswith('KEY_')}
+
+        # initialize pygame
+        pygame.init()
+        white = pygame.Color(240, 240, 240, 240)
+        white_darker = pygame.Color(220, 220, 220, 20)
+        grey = pygame.Color(28, 28, 28)
+
+        # set the keyboard position and color info
+        layout_name = kl.LayoutName.QWERTY
+        keyboard_info = kl.KeyboardInfo(position=(0, 0), padding=PADDING, color=white)
+        key_info = kl.KeyInfo(margin=PADDING,
+                              color=white_darker,
+                              txt_color=grey,
+                              txt_font=pygame.font.SysFont('monospace', bold=True, size=KEY_SIZE // 4),
+                              txt_padding=(KEY_SIZE // 6, KEY_SIZE // 8))
+        letter_key_size = (KEY_SIZE, KEY_SIZE)
+        keyboard_layout = klp.KeyboardLayout(layout_name, keyboard_info, letter_key_size, key_info)
+
+        # draw the keyboard on the pygame screen
+        screen = pygame.display.set_mode((keyboard_layout.rect.width, keyboard_layout.rect.height))
+        screen.fill(white)
+        keyboard_layout.draw(screen)
+        pygame.display.update()
+
+        key_positions = {format_key_name(key): list(rect.values())[0] for (key, rect) in keyboard_layout._rect_by_key_and_loc.items()} # yapf: disable
+
+        running = True
+        while running:
+            # loop until the user closes the pygame window
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.display.quit()
+                    running = False
+            if not running:
+                break
+            # Redraw the keyboard
+            keyboard_layout.draw(screen)
+            # Draw the heatmap on the keys
+            draw_heatmap_on_keys(screen, data=data, key_positions=key_positions, background_color=white_darker)
+            pygame.display.update()
+
+        pygame.quit()
+
 
 def is_mouse(event):
     return event.type.startswith('EV_MOV', 'EV_REL')
@@ -487,84 +482,6 @@ class KbdCounter(object):
             self.save()
 
 
-def generate_heatmap(data):
-    layout_name = kl.LayoutName.QWERTY
-    pygame.init()
-
-    grey = pygame.Color('grey')
-    # set the keyboard position and color info
-    keyboard_info = kl.KeyboardInfo(position=(0, 0), padding=2, color=~grey)
-    # set the letter key color, padding, and margin info in px
-    key_info = kl.KeyInfo(
-        margin=10,
-        color=grey,
-        txt_color=~grey,                                      # invert grey
-        txt_font=pygame.font.SysFont('Arial', KEY_SIZE // 4),
-        txt_padding=(KEY_SIZE // 6, KEY_SIZE // 10))
-                                                              # set the letter key size info in px
-    letter_key_size = (KEY_SIZE, KEY_SIZE)                    # width, height
-    keyboard_layout = klp.KeyboardLayout(layout_name, keyboard_info, letter_key_size, key_info)
-                                                              # set the pygame window to the size of the keyboard
-    screen = pygame.display.set_mode((keyboard_layout.rect.width, keyboard_layout.rect.height))
-    screen.fill(pygame.Color('black'))
-
-    # draw the keyboard on the pygame screen
-    keyboard_layout.draw(screen)
-    pygame.display.update()
-
-    key_positions = get_key_positions(keyboard_layout, layout_name)
-
-    # loop until the user closes the pygame window
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.display.quit()
-                running = False
-
-        # Clear the screen
-        screen.fill(pygame.Color('black'))
-
-        # Redraw the keyboard
-        keyboard_layout.draw(screen)
-
-        # Draw the heatmap on the keys
-        draw_heatmap_on_keys(screen, keyboard_layout, data, key_positions)
-
-        # Update the display
-        pygame.display.update()
-
-    pygame.quit()
-
-
-def draw_heatmap_on_keys(screen, layout, data, key_positions):
-    # Filter data to consider only KEY_ values
-    data = data[data['id'].str.startswith('KEY_')]
-
-    # Draw the heatmap on the keyboard layout
-    for _, row in data.iterrows():
-        key_id = row['id']
-        count = row['total_count']
-
-        # Get the key rect from the layout
-        key_rect = key_positions[key_id]
-
-        # Customize the heatmap's color and transparency (alpha) based on the count
-        color = pygame.Color(0, 0, 255, int(255 * count / data['total_count'].max()))
-
-        # Draw a translucent rectangle for each key with the appropriate color
-        surf = pygame.Surface((key_rect.width, key_rect.height), pygame.SRCALPHA)
-        surf.fill(color)
-        screen.blit(surf, key_rect.topleft)
-
-        # Add key count text
-        font = pygame.font.SysFont('Arial', KEY_SIZE // 4)
-        text_surface = font.render(str(int(count)), True, pygame.Color('white'))
-        text_rect = text_surface.get_rect()
-        text_rect.center = key_rect.center
-        screen.blit(text_surface, text_rect)
-
-
 def run():
     oparser = OptionParser()
     oparser.add_option("--storepath",
@@ -572,6 +489,7 @@ def run():
                        help="Filename into which number of keypresses per hour is written",
                        default="~/.kbdcounter.db")
     oparser.add_option("--report", dest='report', action="store_true", help="Print some statistics", default=False)
+    oparser.add_option("--heatmap", dest='heatmap', action="store_true", help="Show a graphical heatmap", default=False)
     oparser.add_option("--zero-hour",
                        dest='zero_hour',
                        action="store_true",
@@ -593,14 +511,15 @@ def run():
     options.storepath = os.path.expanduser(options.storepath)
     options.storepath = os.path.expandvars(options.storepath)
 
-    # if options.report:
-    query = "SELECT id, SUM(count) as total_count FROM keyboard GROUP BY id"
-    data = fetch_data(query, options.storepath)
-    generate_heatmap(data)
-    # print (options.storepath)
-    # storage = Storage(options.storepath)
-    # storage.print_stats()
-    return
+    if options.heatmap:
+        storage = Storage(options.storepath)
+        storage.generate_heatmap()
+        return
+
+    if options.report:
+        storage = Storage(options.storepath)
+        storage.print_stats()
+        return
 
     if options.zero_hour:
         Storage(options.storepath).clear_current_hour()
